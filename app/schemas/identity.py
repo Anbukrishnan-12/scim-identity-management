@@ -79,9 +79,14 @@ class Identity(IdentityBase):
 
 class SlackUserRequest(BaseModel):
     email: str
+    first_name: str
+    last_name: Optional[str] = None
     channels: Optional[list[str]] = []
     
 class SlackUserResponse(BaseModel):
-    user_id: str
+    user_id: Optional[str]
     email: str
     status: str
+    name: Optional[str] = None
+    channels_assigned: Optional[list[str]] = None
+    error: Optional[str] = None
