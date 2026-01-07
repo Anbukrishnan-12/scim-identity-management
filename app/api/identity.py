@@ -41,15 +41,15 @@ async def create_identity(
         logging.error(f"Error creating identity: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@router.get("/list/all", response_model=List[Identity], summary="Get All Identities")
-def get_all_identities(
+@router.get("/employees/all", response_model=List[Identity], summary="Get All Employees")
+def get_all_employees(
     db: Session = Depends(get_db),
     _: bool = Depends(AuthService.verify_hr_access)
 ):
     """
-    **Get All Identities** (HR Only)
+    **Get All Employees** (HR Only)
     
-    Retrieves all users in the system.
+    Retrieves all employees in the system.
     **Restricted to HR personnel only.**
     
     **Required Header:**
