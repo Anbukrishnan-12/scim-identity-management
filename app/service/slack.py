@@ -96,3 +96,58 @@ class SlackService:
             result["channels_assigned"] = channels
         
         return result
+    async def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get user details by Slack user ID"""
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{self.base_url}/users.info",
+                headers=self.headers,
+                params={"user": user_id}
+            )
+            if response.status_code == 200:
+                data = response.json()
+                return data.get("user") if data.get("ok") else None
+            return None
+    
+    async def delete_user(self, user_id: str) -> Dict[str, Any]:
+        """Delete/deactivate user from Slack workspace"""
+        async with httpx.AsyncClient() as client:
+            # First try SCIM API for deletion
+            response = await client.delete(
+                f"{self.base_url}/scim/v1/Users/{user_id}",
+                headers=self.headers
+            )
+            
+            if response.status_code == 204:
+                return {"status": "deleted", "user_id": user_id}
+            
+            # If SCIM fails, try deactivating user
+            response = await client.post(
+                f"{self.base_url}/admin.users.setInactive",
+                headers=self.headers,
+                json={"user": user_id}
+            )
+            
+            if response.status_code == 200 and response.json().get("ok"):
+                return {"status": "deactivated", "user_id": user_id}
+            
+            return {"status": "failed", "user_id": user_id, "error": "Could not delete user"}
+    
+    async def create_new_user_only(self, email: str, first_name: str, last_name: str = None) -> Dict[str, Any]:
+        """Create new user without checking if exists"""
+        new_user = await self.create_slack_user(email, first_name, last_name)
+        
+        if new_user:
+            return {
+                "user_id": new_user.get("id"),
+                "email": email,
+                "status": "created",
+                "name": f"{first_name} {last_name or ''}".strip()
+            }
+        
+        return {
+            "user_id": None,
+            "email": email,
+            "status": "failed",
+            "error": "Could not create user in Slack"
+        }

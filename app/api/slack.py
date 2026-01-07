@@ -1,6 +1,12 @@
 from fastapi import APIRouter, HTTPException
 from app.service.slack import SlackService
-from app.schemas.identity import SlackUserRequest, SlackUserResponse
+from app.schemas.identity import (
+    SlackUserRequest, 
+    SlackUserResponse, 
+    SlackCreateUserRequest,
+    SlackUserSearchResponse,
+    SlackDeleteResponse
+)
 
 router = APIRouter()
 
@@ -48,3 +54,96 @@ async def get_slack_user(email: str):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+@router.post("/create-user", response_model=SlackUserResponse, summary="Create New Slack User")
+async def create_new_slack_user(request: SlackCreateUserRequest):
+    """
+    **Create New User in Slack**
+    
+    Creates a brand new user in Slack workspace without checking if user already exists.
+    
+    **Use Cases:**
+    - Force create new user account
+    - Bulk user creation scenarios
+    - When you're sure user doesn't exist
+    
+    **Request Fields:**
+    - `email`: User's email address (required)
+    - `first_name`: User's first name (required)
+    - `last_name`: User's last name (optional)
+    """
+    service = SlackService()
+    result = await service.create_new_user_only(
+        request.email, 
+        request.first_name, 
+        request.last_name
+    )
+    
+    if result["status"] == "failed":
+        raise HTTPException(status_code=400, detail=result.get("error", "User creation failed"))
+    
+    return SlackUserResponse(**result)
+
+@router.get("/search/{user_id}", response_model=SlackUserSearchResponse, summary="Search User by ID")
+async def search_slack_user(user_id: str):
+    """
+    **Search User by Slack User ID**
+    
+    Retrieves detailed user information from Slack workspace using user ID.
+    
+    **Use Cases:**
+    - User profile verification
+    - Account status checking
+    - User details lookup for audit
+    
+    **Returns:**
+    - Complete user profile information
+    - Account status and activity
+    - User preferences and settings
+    """
+    service = SlackService()
+    user = await service.get_user_by_id(user_id)
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found in Slack")
+    
+    return SlackUserSearchResponse(
+        user_id=user.get("id"),
+        email=user.get("profile", {}).get("email"),
+        name=user.get("real_name"),
+        status="found",
+        is_active=not user.get("deleted", False),
+        profile=user.get("profile", {})
+    )
+
+@router.delete("/delete/{user_id}", response_model=SlackDeleteResponse, summary="Delete Slack User")
+async def delete_slack_user(user_id: str):
+    """
+    **Delete User from Slack Workspace**
+    
+    Removes or deactivates user from Slack workspace permanently.
+    
+    **Process:**
+    1. Attempts to delete user via SCIM API
+    2. If deletion fails, deactivates user account
+    3. Returns operation status and details
+    
+    **Use Cases:**
+    - Employee termination
+    - Account cleanup
+    - Security incident response
+    
+    **Warning:** This action may be irreversible depending on Slack configuration.
+    """
+    service = SlackService()
+    result = await service.delete_user(user_id)
+    
+    if result["status"] == "failed":
+        raise HTTPException(status_code=400, detail=result.get("error", "User deletion failed"))
+    
+    message = "User deleted successfully" if result["status"] == "deleted" else "User deactivated successfully"
+    
+    return SlackDeleteResponse(
+        user_id=user_id,
+        status=result["status"],
+        message=message
+    )

@@ -90,3 +90,20 @@ class SlackUserResponse(BaseModel):
     name: Optional[str] = None
     channels_assigned: Optional[list[str]] = None
     error: Optional[str] = None
+class SlackCreateUserRequest(BaseModel):
+    email: str
+    first_name: str
+    last_name: Optional[str] = None
+
+class SlackUserSearchResponse(BaseModel):
+    user_id: Optional[str]
+    email: Optional[str]
+    name: Optional[str]
+    status: str
+    is_active: Optional[bool] = None
+    profile: Optional[Dict[str, Any]] = None
+
+class SlackDeleteResponse(BaseModel):
+    user_id: str
+    status: str
+    message: Optional[str] = None
