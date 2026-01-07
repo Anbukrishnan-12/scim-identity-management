@@ -1,10 +1,63 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, date
 
 class IdentityBase(BaseModel):
+    # Primary identifiers
+    username: Optional[str] = None
     employee_id: str
-    email: EmailStr
+    external_id: Optional[str] = None
+    
+    # Basic Identity Information
+    first_name: str
+    last_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    display_name: str
+    
+    # Contact Information
+    primary_email: EmailStr
+    secondary_email: Optional[EmailStr] = None
+    mobile_phone: Optional[str] = None
+    work_phone: Optional[str] = None
+    
+    # Employment Information
+    employment_type: Optional[str] = "Employee"
+    employment_status: Optional[str] = "ACTIVE"
+    hire_date: Optional[date] = None
+    termination_date: Optional[date] = None
+    last_working_day: Optional[date] = None
+    
+    # Organizational Information
+    department: Optional[str] = None
+    location: Optional[str] = None
+    cost_center: Optional[str] = None
+    division: Optional[str] = None
+    building: Optional[str] = None
+    floor: Optional[str] = None
+    office: Optional[str] = None
+    
+    # Job Information
+    job_title: Optional[str] = None
+    job_code: Optional[str] = None
+    job_level: Optional[str] = None
+    job_family: Optional[str] = None
+    
+    # Manager Relationships
+    manager_id: Optional[int] = None
+    manager_external_id: Optional[str] = None
+    reports_to_name: Optional[str] = None
+    
+    # Security & Compliance
+    security_clearance: Optional[str] = None
+    background_check_status: Optional[str] = None
+    background_check_date: Optional[date] = None
+    
+    # Account Status & Lifecycle
+    account_status: Optional[str] = "ACTIVE"
+    lifecycle_state: Optional[str] = "ACTIVE"
+    risk_score: Optional[int] = 0
+    
+    # Business Role & Entitlements
     business_role: str
     entitlements: Optional[Dict[str, Any]] = {}
 
@@ -12,6 +65,56 @@ class IdentityCreate(IdentityBase):
     pass
 
 class IdentityUpdate(BaseModel):
+    # Basic Identity Information
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    display_name: Optional[str] = None
+    
+    # Contact Information
+    primary_email: Optional[EmailStr] = None
+    secondary_email: Optional[EmailStr] = None
+    mobile_phone: Optional[str] = None
+    work_phone: Optional[str] = None
+    
+    # Employment Information
+    employment_type: Optional[str] = None
+    employment_status: Optional[str] = None
+    hire_date: Optional[date] = None
+    termination_date: Optional[date] = None
+    last_working_day: Optional[date] = None
+    
+    # Organizational Information
+    department: Optional[str] = None
+    location: Optional[str] = None
+    cost_center: Optional[str] = None
+    division: Optional[str] = None
+    building: Optional[str] = None
+    floor: Optional[str] = None
+    office: Optional[str] = None
+    
+    # Job Information
+    job_title: Optional[str] = None
+    job_code: Optional[str] = None
+    job_level: Optional[str] = None
+    job_family: Optional[str] = None
+    
+    # Manager Relationships
+    manager_id: Optional[int] = None
+    manager_external_id: Optional[str] = None
+    reports_to_name: Optional[str] = None
+    
+    # Security & Compliance
+    security_clearance: Optional[str] = None
+    background_check_status: Optional[str] = None
+    background_check_date: Optional[date] = None
+    
+    # Account Status & Lifecycle
+    account_status: Optional[str] = None
+    lifecycle_state: Optional[str] = None
+    risk_score: Optional[int] = None
+    
+    # Business Role & Entitlements
     business_role: Optional[str] = None
     entitlements: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
@@ -22,7 +125,9 @@ class Identity(IdentityBase):
     id: int
     is_active: bool
     created_at: datetime
+    created_by: str
     updated_at: Optional[datetime] = None
+    last_modified_by: str
 
 class SlackUserRequest(BaseModel):
     email: str
