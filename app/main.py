@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse
 from app.core.config import settings
 from app.api.identity import router as identity_router
 from app.api.slack import router as slack_router
+from app.api.employee import router as employee_router
 
 app = FastAPI(
     title="IGA System - Identity Governance & Administration",
@@ -62,6 +63,7 @@ app = FastAPI(
 
 app.include_router(identity_router, prefix="/api/v1/identity", tags=["Identity Management"])
 app.include_router(slack_router, prefix="/api/v1/slack", tags=["Slack Integration"])
+app.include_router(employee_router, prefix="/api/v1/employee", tags=["Employee Management"])
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def homepage():
