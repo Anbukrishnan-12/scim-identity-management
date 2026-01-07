@@ -41,6 +41,41 @@ async def create_identity(
         logging.error(f"Error creating identity: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
+@router.get("/list/all", response_model=List[Identity], summary="Get All Identities")
+def get_all_identities(
+    db: Session = Depends(get_db),
+    _: bool = Depends(AuthService.verify_hr_access)
+):
+    """
+    **Get All Identities** (HR Only)
+    
+    Retrieves all users in the system.
+    **Restricted to HR personnel only.**
+    
+    **Required Header:**
+    - `X-User-Role`: Must be "hr"
+    """
+    service = IdentityService(db)
+    return service.get_all_identities()
+
+@router.get("/role/{role}", response_model=List[Identity], summary="Get Identities by Role")
+def get_identities_by_role(
+    role: str, 
+    db: Session = Depends(get_db),
+    _: bool = Depends(AuthService.verify_hr_access)
+):
+    """
+    **Get All Identities by Business Role** (HR Only)
+    
+    Retrieves all users with a specific business role.
+    **Restricted to HR personnel only.**
+    
+    **Required Header:**
+    - `X-User-Role`: Must be "hr"
+    """
+    service = IdentityService(db)
+    return service.get_identities_by_role(role)
+
 @router.get("/{identity_id}", response_model=Identity, summary="Retrieve Identity Details")
 def get_identity(
     identity_id: int, 
@@ -68,41 +103,6 @@ def get_identity(
     if not identity:
         raise HTTPException(status_code=404, detail="Identity not found")
     return identity
-
-@router.get("/role/{role}", response_model=List[Identity], summary="Get Identities by Role")
-def get_identities_by_role(
-    role: str, 
-    db: Session = Depends(get_db),
-    _: bool = Depends(AuthService.verify_hr_access)
-):
-    """
-    **Get All Identities by Business Role** (HR Only)
-    
-    Retrieves all users with a specific business role.
-    **Restricted to HR personnel only.**
-    
-    **Required Header:**
-    - `X-User-Role`: Must be "hr"
-    """
-    service = IdentityService(db)
-    return service.get_identities_by_role(role)
-
-@router.get("/list/all", response_model=List[Identity], summary="Get All Identities")
-def get_all_identities(
-    db: Session = Depends(get_db),
-    _: bool = Depends(AuthService.verify_hr_access)
-):
-    """
-    **Get All Identities** (HR Only)
-    
-    Retrieves all users in the system.
-    **Restricted to HR personnel only.**
-    
-    **Required Header:**
-    - `X-User-Role`: Must be "hr"
-    """
-    service = IdentityService(db)
-    return service.get_all_identities()
 
 @router.put("/{identity_id}", response_model=Identity, summary="Update Identity")
 async def update_identity(
