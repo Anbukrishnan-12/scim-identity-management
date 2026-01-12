@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCIM User Management</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            padding: 20px 0;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .management-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .action-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .form-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .form-section.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        .form-group input:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        
+        .submit-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        
+        .submit-btn:hover {
+            background: #218838;
+        }
+        
+        .result-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .result-section.active {
+            display: block;
+        }
+        
+        .user-card {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        
+        .user-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .user-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .user-status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .user-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .detail-item {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .detail-value {
+            color: #333;
+            margin-top: 5px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .close-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            float: right;
+            margin-bottom: 10px;
+        }
+        
+        .json-display {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-users-cog"></i> SCIM User Management</h1>
+            <p>Professional User Management Interface</p>
+        </div>
+        
+        <div class="management-section">
+            <div class="action-buttons">
+                <button class="action-btn" onclick="showListUsers()">
+                    <i class="fas fa-list"></i> List All Users
+                </button>
+                <button class="action-btn" onclick="showGetUser()">
+                    <i class="fas fa-search"></i> Get User Details
+                </button>
+                <button class="action-btn" onclick="showCreateUser()">
+                    <i class="fas fa-plus"></i> Create New User
+                </button>
+                <button class="action-btn" onclick="showUpdateUser()">
+                    <i class="fas fa-edit"></i> Update User
+                </button>
+                <button class="action-btn" onclick="showDeleteUser()">
+                    <i class="fas fa-trash"></i> Delete User
+                </button>
+            </div>
+            
+            <!-- Get User Form -->
+            <div id="getUserForm" class="form-section">
+                <h3><i class="fas fa-search"></i> Get User Details</h3>
+                <div class="form-group">
+                    <label for="getUserId">User ID:</label>
+                    <input type="text" id="getUserId" placeholder="Enter User ID">
+                </div>
+                <button class="submit-btn" onclick="getUserDetails()">
+                    <i class="fas fa-search"></i> Get User
+                </button>
+            </div>
+            
+            <!-- Create User Form -->
+            <div id="createUserForm" class="form-section">
+                <h3><i class="fas fa-plus"></i> Create New User</h3>
+                <div class="form-group">
+                    <label for="createUserName">Username (Email):</label>
+                    <input type="email" id="createUserName" placeholder="user@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="createDisplayName">Display Name:</label>
+                    <input type="text" id="createDisplayName" placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label for="createGivenName">First Name:</label>
+                    <input type="text" id="createGivenName" placeholder="John">
+                </div>
+                <div class="form-group">
+                    <label for="createFamilyName">Last Name:</label>
+                    <input type="text" id="createFamilyName" placeholder="Doe">
+                </div>
+                <div class="form-group">
+                    <label for="createTitle">Job Title:</label>
+                    <input type="text" id="createTitle" placeholder="Software Engineer">
+                </div>
+                <button class="submit-btn" onclick="createUser()">
+                    <i class="fas fa-plus"></i> Create User
+                </button>
+            </div>
+            
+            <!-- Update User Form -->
+            <div id="updateUserForm" class="form-section">
+                <h3><i class="fas fa-edit"></i> Update User</h3>
+                <div class="form-group">
+                    <label for="updateUserId">User ID:</label>
+                    <input type="text" id="updateUserId" placeholder="Enter User ID">
+                </div>
+                <div class="form-group">
+                    <label for="updateTitle">New Job Title:</label>
+                    <input type="text" id="updateTitle" placeholder="Senior Software Engineer">
+                </div>
+                <div class="form-group">
+                    <label for="updateDepartment">Department:</label>
+                    <input type="text" id="updateDepartment" placeholder="Engineering">
+                </div>
+                <button class="submit-btn" onclick="updateUser()">
+                    <i class="fas fa-save"></i> Update User
+                </button>
+            </div>
+            
+            <!-- Delete User Form -->
+            <div id="deleteUserForm" class="form-section">
+                <h3><i class="fas fa-trash"></i> Delete User</h3>
+                <div class="form-group">
+                    <label for="deleteUserId">User ID:</label>
+                    <input type="text" id="deleteUserId" placeholder="Enter User ID">
+                </div>
+                <button class="submit-btn" onclick="deleteUser()" style="background: #dc3545;">
+                    <i class="fas fa-trash"></i> Delete User
+                </button>
+            </div>
+        </div>
+        
+        <!-- Results Section -->
+        <div id="resultsSection" class="result-section">
+            <button class="close-btn" onclick="closeResults()">
+                <i class="fas fa-times"></i> Close
+            </button>
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Check authentication with token validation
+        function checkAuth() {
+            const token = sessionStorage.getItem('scim_token');
+            const authenticated = sessionStorage.getItem('scim_authenticated');
+            const loginTime = sessionStorage.getItem('scim_login_time');
+            const expiresIn = sessionStorage.getItem('scim_expires_in') || 3600;
+            const currentTime = Date.now();
+            const sessionTimeout = expiresIn * 1000; // Convert to milliseconds
+            
+            if (!token || authenticated !== 'true' || !loginTime || (currentTime - loginTime > sessionTimeout)) {
+                // Token expired or not authenticated
+                sessionStorage.clear();
+                window.location.href = '/login/';
+                return false;
+            }
+            return true;
+        }
+        
+        // Add logout with token revocation
+        async function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                const token = sessionStorage.getItem('scim_token');
+                
+                // Revoke token on server
+                try {
+                    await fetch('http://127.0.0.1:9000/auth/revoke', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                } catch (error) {
+                    console.log('Token revocation failed:', error);
+                }
+                
+                sessionStorage.clear();
+                window.location.href = '/login/';
+            }
+        }
+        
+        // Add logout button to page
+        window.addEventListener('load', function() {
+            if (!checkAuth()) return;
+            
+            const header = document.querySelector('.header');
+            const logoutBtn = document.createElement('button');
+            logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Logout';
+            logoutBtn.style.cssText = `
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                background: rgba(255,255,255,0.2);
+                color: white;
+                border: 2px solid white;
+                padding: 10px 20px;
+                border-radius: 25px;
+                cursor: pointer;
+                font-weight: bold;
+                transition: all 0.3s ease;
+            `;
+            logoutBtn.onmouseover = () => {
+                logoutBtn.style.background = 'white';
+                logoutBtn.style.color = '#667eea';
+            };
+            logoutBtn.onmouseout = () => {
+                logoutBtn.style.background = 'rgba(255,255,255,0.2)';
+                logoutBtn.style.color = 'white';
+            };
+            logoutBtn.onclick = logout;
+            
+            header.style.position = 'relative';
+            header.appendChild(logoutBtn);
+            
+            // Show current user
+            const user = sessionStorage.getItem('scim_user');
+            const userInfo = document.createElement('div');
+            userInfo.innerHTML = `<i class="fas fa-user"></i> Welcome, ${user}`;
+            userInfo.style.cssText = `
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                color: white;
+                background: rgba(255,255,255,0.1);
+                padding: 10px 15px;
+                border-radius: 20px;
+                font-size: 0.9rem;
+            `;
+            header.appendChild(userInfo);
+        });
+        
+        // Check authentication before loading page
+        if (!checkAuth()) {
+            document.body.style.display = 'none';
+        }
+        function hideAllForms() {
+            document.querySelectorAll('.form-section').forEach(form => {
+                form.classList.remove('active');
+            });
+        }
+        
+        function showResults() {
+            document.getElementById('resultsSection').classList.add('active');
+        }
+        
+        function closeResults() {
+            document.getElementById('resultsSection').classList.remove('active');
+        }
+        
+        function showListUsers() {
+            hideAllForms();
+            listAllUsers();
+        }
+        
+        function showGetUser() {
+            hideAllForms();
+            document.getElementById('getUserForm').classList.add('active');
+        }
+        
+        function showCreateUser() {
+            hideAllForms();
+            document.getElementById('createUserForm').classList.add('active');
+        }
+        
+        function showUpdateUser() {
+            hideAllForms();
+            document.getElementById('updateUserForm').classList.add('active');
+        }
+        
+        function showDeleteUser() {
+            hideAllForms();
+            document.getElementById('deleteUserForm').classList.add('active');
+        }
+        
+        // Add token to all API requests
+        function getAuthHeaders() {
+            const token = sessionStorage.getItem('scim_token');
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            };
+        }
+        
+        async function listAllUsers() {
+            showResults();
+            document.getElementById('resultsContent').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading users...</div>';
+            
+            try {
+                // Use token-based API call
+                const response = await fetch('http://127.0.0.1:9000/users', {
+                    headers: getAuthHeaders()
+                });
+                const data = await response.json();
+                
+                if (data.Resources && data.Resources.length > 0) {
+                    let html = `<h3><i class="fas fa-users"></i> All Users (${data.totalResults})</h3>`;
+                    
+                    data.Resources.forEach(user => {
+                        html += `
+                            <div class="user-card">
+                                <div class="user-header">
+                                    <div class="user-name">${user.displayName || user.userName}</div>
+                                    <div class="user-status ${user.active ? 'status-active' : 'status-inactive'}">
+                                        ${user.active ? 'Active' : 'Inactive'}
+                                    </div>
+                                </div>
+                                <div class="user-details">
+                                    <div class="detail-item">
+                                        <div class="detail-label">User ID</div>
+                                        <div class="detail-value">${user.id}</div>
+                                    </div>
+                                    <div class="detail-item">
+                                        <div class="detail-label">Username</div>
+                                        <div class="detail-value">${user.userName}</div>
+                                    </div>
+                                    <div class="detail-item">
+                                        <div class="detail-label">Name</div>
+                                        <div class="detail-value">${user.name?.givenName || ''} ${user.name?.familyName || ''}</div>
+                                    </div>
+                                    <div class="detail-item">
+                                        <div class="detail-label">Title</div>
+                                        <div class="detail-value">${user.title || 'Not specified'}</div>
+                                    </div>
+                                    <div class="detail-item">
+                                        <div class="detail-label">Email</div>
+                                        <div class="detail-value">${user.emails?.[0]?.value || 'No email'}</div>
+                                    </div>
+                                    <div class="detail-item">
+                                        <div class="detail-label">Created</div>
+                                        <div class="detail-value">${new Date(user.meta?.created).toLocaleDateString()}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    document.getElementById('resultsContent').innerHTML = html;
+                } else {
+                    document.getElementById('resultsContent').innerHTML = '<div class="error">No users found</div>';
+                }
+            } catch (error) {
+                document.getElementById('resultsContent').innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function getUserDetails() {
+            const userId = document.getElementById('getUserId').value;
+            if (!userId) {
+                alert('Please enter a User ID');
+                return;
+            }
+            
+            showResults();
+            document.getElementById('resultsContent').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading user details...</div>';
+            
+            try {
+                const response = await fetch(`http://127.0.0.1:9000/users/${userId}`, {
+                    headers: getAuthHeaders()
+                });
+                const user = await response.json();
+                
+                if (response.ok) {
+                    const html = `
+                        <h3><i class="fas fa-user"></i> User Details</h3>
+                        <div class="user-card">
+                            <div class="user-header">
+                                <div class="user-name">${user.displayName || user.userName}</div>
+                                <div class="user-status ${user.active ? 'status-active' : 'status-inactive'}">
+                                    ${user.active ? 'Active' : 'Inactive'}
+                                </div>
+                            </div>
+                            <div class="user-details">
+                                <div class="detail-item">
+                                    <div class="detail-label">User ID</div>
+                                    <div class="detail-value">${user.id}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Username</div>
+                                    <div class="detail-value">${user.userName}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Display Name</div>
+                                    <div class="detail-value">${user.displayName || 'Not specified'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">First Name</div>
+                                    <div class="detail-value">${user.name?.givenName || 'Not specified'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Last Name</div>
+                                    <div class="detail-value">${user.name?.familyName || 'Not specified'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Title</div>
+                                    <div class="detail-value">${user.title || 'Not specified'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Email</div>
+                                    <div class="detail-value">${user.emails?.[0]?.value || 'No email'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Phone</div>
+                                    <div class="detail-value">${user.phoneNumbers?.[0]?.value || 'No phone'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Department</div>
+                                    <div class="detail-value">${user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User']?.department || 'Not specified'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Employee Number</div>
+                                    <div class="detail-value">${user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User']?.employeeNumber || 'Not specified'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Created</div>
+                                    <div class="detail-value">${new Date(user.meta?.created).toLocaleString()}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <h4 style="margin-top: 20px;"><i class="fas fa-code"></i> Raw JSON Data</h4>
+                        <div class="json-display">${JSON.stringify(user, null, 2)}</div>
+                    `;
+                    
+                    document.getElementById('resultsContent').innerHTML = html;
+                } else {
+                    document.getElementById('resultsContent').innerHTML = `<div class="error">Error: ${user.error || 'User not found'}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('resultsContent').innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function createUser() {
+            const userData = {
+                user_name: document.getElementById('createUserName').value,
+                display_name: document.getElementById('createDisplayName').value,
+                given_name: document.getElementById('createGivenName').value,
+                family_name: document.getElementById('createFamilyName').value,
+                title: document.getElementById('createTitle').value,
+                active: true,
+                emails: [{
+                    value: document.getElementById('createUserName').value,
+                    type: "work",
+                    primary: true
+                }]
+            };
+            
+            if (!userData.user_name || !userData.display_name) {
+                alert('Please fill in required fields (Username and Display Name)');
+                return;
+            }
+            
+            showResults();
+            document.getElementById('resultsContent').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Creating user...</div>';
+            
+            try {
+                const response = await fetch('http://127.0.0.1:9000/users', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(userData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('resultsContent').innerHTML = `
+                        <div class="success"><i class="fas fa-check"></i> User created successfully!</div>
+                        <h4><i class="fas fa-user"></i> Created User Details</h4>
+                        <div class="user-card">
+                            <div class="user-header">
+                                <div class="user-name">${result.displayName || result.userName}</div>
+                                <div class="user-status status-active">Active</div>
+                            </div>
+                            <div class="user-details">
+                                <div class="detail-item">
+                                    <div class="detail-label">User ID</div>
+                                    <div class="detail-value">${result.id}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Username</div>
+                                    <div class="detail-value">${result.userName}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Display Name</div>
+                                    <div class="detail-value">${result.displayName}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Title</div>
+                                    <div class="detail-value">${result.title || 'Not specified'}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="json-display">${JSON.stringify(result, null, 2)}</div>
+                    `;
+                    
+                    // Clear form
+                    document.getElementById('createUserForm').querySelectorAll('input').forEach(input => input.value = '');
+                } else {
+                    document.getElementById('resultsContent').innerHTML = `<div class="error">Error: ${result.error || 'Failed to create user'}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('resultsContent').innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function updateUser() {
+            const userId = document.getElementById('updateUserId').value;
+            const updateData = {
+                title: document.getElementById('updateTitle').value,
+                'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User': {
+                    department: document.getElementById('updateDepartment').value
+                }
+            };
+            
+            if (!userId) {
+                alert('Please enter a User ID');
+                return;
+            }
+            
+            showResults();
+            document.getElementById('resultsContent').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Updating user...</div>';
+            
+            try {
+                const response = await fetch(`http://127.0.0.1:9000/users/${userId}`, {
+                    method: 'PATCH',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(updateData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('resultsContent').innerHTML = `
+                        <div class="success"><i class="fas fa-check"></i> User updated successfully!</div>
+                        <h4><i class="fas fa-user"></i> Updated User Details</h4>
+                        <div class="user-card">
+                            <div class="user-header">
+                                <div class="user-name">${result.displayName || result.userName}</div>
+                                <div class="user-status ${result.active ? 'status-active' : 'status-inactive'}">
+                                    ${result.active ? 'Active' : 'Inactive'}
+                                </div>
+                            </div>
+                            <div class="user-details">
+                                <div class="detail-item">
+                                    <div class="detail-label">User ID</div>
+                                    <div class="detail-value">${result.id}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Title</div>
+                                    <div class="detail-value">${result.title || 'Not specified'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Department</div>
+                                    <div class="detail-value">${result['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User']?.department || 'Not specified'}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="json-display">${JSON.stringify(result, null, 2)}</div>
+                    `;
+                    
+                    // Clear form
+                    document.getElementById('updateUserForm').querySelectorAll('input').forEach(input => input.value = '');
+                } else {
+                    document.getElementById('resultsContent').innerHTML = `<div class="error">Error: ${result.error || 'Failed to update user'}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('resultsContent').innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function deleteUser() {
+            const userId = document.getElementById('deleteUserId').value;
+            
+            if (!userId) {
+                alert('Please enter a User ID');
+                return;
+            }
+            
+            if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+                return;
+            }
+            
+            showResults();
+            document.getElementById('resultsContent').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Deleting user...</div>';
+            
+            try {
+                const response = await fetch(`http://127.0.0.1:9000/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.ok) {
+                    document.getElementById('resultsContent').innerHTML = `
+                        <div class="success"><i class="fas fa-check"></i> User deleted successfully!</div>
+                        <div class="detail-item">
+                            <div class="detail-label">Deleted User ID</div>
+                            <div class="detail-value">${userId}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Status</div>
+                            <div class="detail-value">User has been permanently removed from the system</div>
+                        </div>
+                    `;
+                    
+                    // Clear form
+                    document.getElementById('deleteUserId').value = '';
+                } else {
+                    const result = await response.json();
+                    document.getElementById('resultsContent').innerHTML = `<div class="error">Error: ${result.error || 'Failed to delete user'}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('resultsContent').innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCIM Login - Secure Access</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .login-header {
+            margin-bottom: 30px;
+        }
+        
+        .login-header i {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .login-header h1 {
+            color: #333;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .login-header p {
+            color: #666;
+            font-size: 1rem;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        
+        .login-btn {
+            width: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .security-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            text-align: left;
+        }
+        
+        .security-info h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        .security-info ul {
+            color: #666;
+            font-size: 0.9rem;
+            margin-left: 20px;
+        }
+        
+        .loading {
+            display: none;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <i class="fas fa-shield-alt"></i>
+            <h1>Secure Access</h1>
+            <p>SCIM Identity Management System</p>
+        </div>
+        
+        <div id="errorMessage" class="error"></div>
+        <div id="successMessage" class="success"></div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">
+                    <i class="fas fa-user"></i> Username
+                </label>
+                <input type="text" id="username" name="username" required placeholder="Enter your username">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">
+                    <i class="fas fa-lock"></i> Password or Token
+                </label>
+                <input type="password" id="password" name="password" required placeholder="Enter password or access token">
+                <small style="color: #666; font-size: 0.85rem; margin-top: 5px; display: block;">
+                    💡 You can enter either your password or a valid access token
+                </small>
+            </div>
+            
+            <button type="submit" class="login-btn" id="loginBtn">
+                <span id="loginText">
+                    <i class="fas fa-sign-in-alt"></i> Secure Login
+                </span>
+                <span id="loadingText" class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> Authenticating...
+                </span>
+            </button>
+        </form>
+        
+        <div class="security-info">
+            <h4><i class="fas fa-info-circle"></i> Security Features</h4>
+            <ul>
+                <li>Token-based authentication</li>
+                <li>Session timeout protection</li>
+                <li>Secure API access only</li>
+                <li>Enterprise-grade security</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loginText = document.getElementById('loginText');
+            const loadingText = document.getElementById('loadingText');
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            
+            // Hide previous messages
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            // Show loading state
+            loginBtn.disabled = true;
+            loginText.style.display = 'none';
+            loadingText.style.display = 'inline';
+            
+            try {
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                // Check if input looks like a token (long alphanumeric string)
+                const isToken = password.length > 30 && /^[A-Za-z0-9_-]+$/.test(password);
+                
+                if (isToken) {
+                    // Direct token validation
+                    const validateResponse = await fetch('http://127.0.0.1:9000/auth/validate', {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${password}` }
+                    });
+                    
+                    if (validateResponse.ok) {
+                        const tokenData = await validateResponse.json();
+                        // Store the token directly
+                        sessionStorage.setItem('scim_token', password);
+                        sessionStorage.setItem('scim_authenticated', 'true');
+                        sessionStorage.setItem('scim_user', tokenData.user_id || username);
+                        sessionStorage.setItem('scim_login_time', Date.now());
+                        sessionStorage.setItem('scim_expires_in', 3600);
+                        
+                        successDiv.textContent = 'Token authentication successful! Redirecting...';
+                        successDiv.style.display = 'block';
+                        
+                        setTimeout(() => {
+                            window.location.href = '/home/';
+                        }, 1000);
+                        return;
+                    } else {
+                        throw new Error('Invalid or expired token');
+                    }
+                }
+                
+                // Regular password authentication
+                const response = await fetch('http://127.0.0.1:9000/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.access_token) {
+                    // Store auth token securely
+                    sessionStorage.setItem('scim_token', result.access_token);
+                    sessionStorage.setItem('scim_authenticated', 'true');
+                    sessionStorage.setItem('scim_user', username);
+                    sessionStorage.setItem('scim_login_time', Date.now());
+                    sessionStorage.setItem('scim_expires_in', result.expires_in);
+                    
+                    successDiv.textContent = 'Password authentication successful! Redirecting...';
+                    successDiv.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        window.location.href = '/home/';
+                    }, 1000);
+                } else {
+                    throw new Error(result.error || 'Invalid credentials');
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Authentication failed: ' + error.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                // Reset button state
+                loginBtn.disabled = false;
+                loginText.style.display = 'inline';
+                loadingText.style.display = 'none';
+            }
+        });
+        
+        // Check if already authenticated
+        if (sessionStorage.getItem('scim_authenticated') === 'true') {
+            const loginTime = sessionStorage.getItem('scim_login_time');
+            const currentTime = Date.now();
+            const sessionTimeout = 60 * 60 * 1000; // 1 hour
+            
+            if (currentTime - loginTime < sessionTimeout) {
+                window.location.href = '/home/';
+            } else {
+                // Session expired
+                sessionStorage.clear();
+            }
+        }
+    </script>
+</body>
+</html>

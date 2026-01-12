@@ -228,6 +228,16 @@
             <h2><i class="fas fa-code"></i> API Endpoints</h2>
             <div class="endpoints-grid">
                 <div class="endpoint-card">
+                    <span class="method get">WEB</span>
+                    <h4>User Management Interface</h4>
+                    <div class="endpoint-url">/manage/</div>
+                    <p>Professional web interface for all CRUD operations</p>
+                    <button class="test-btn" onclick="window.open('/manage/', '_blank')">
+                        <i class="fas fa-external-link-alt"></i> Open Interface
+                    </button>
+                </div>
+                
+                <div class="endpoint-card">
                     <span class="method get">GET</span>
                     <h4>List All Users</h4>
                     <div class="endpoint-url">/scim/v2/Users/</div>
@@ -308,6 +318,37 @@
     </div>
     
     <script>
+        // Authentication check - redirect if not logged in
+        function checkAuthentication() {
+            const token = sessionStorage.getItem('scim_token');
+            const authenticated = sessionStorage.getItem('scim_authenticated');
+            const loginTime = sessionStorage.getItem('scim_login_time');
+            
+            if (!token || !authenticated || authenticated !== 'true') {
+                window.location.href = '/login/';
+                return false;
+            }
+            
+            // Check token expiry
+            if (loginTime) {
+                const currentTime = Date.now();
+                const sessionTimeout = 60 * 60 * 1000; // 1 hour
+                
+                if (currentTime - loginTime > sessionTimeout) {
+                    sessionStorage.clear();
+                    window.location.href = '/login/';
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        // Check authentication on page load
+        if (!checkAuthentication()) {
+            // Will redirect to login if not authenticated
+        }
+        
         // Load user count
         async function loadUserCount() {
             try {

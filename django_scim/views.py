@@ -1,8 +1,19 @@
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 
 def home(request):
+    # Redirect to login page - no direct access to home
+    return redirect('/login/')
+
+def login_view(request):
+    return render(request, 'login.html')
+
+def dashboard(request):
+    # Protected home page - only accessible after login
     return render(request, 'home.html')
+
+def user_management(request):
+    return render(request, 'user_management.html')
 
 def api_home(request):
     return JsonResponse({
