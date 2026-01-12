@@ -30,3 +30,9 @@ Thumbs.db
 # Project specific
 migrations/__pycache__/
 *.pyc
+
+# Railway ignore
+init_db.py
+init_production_db.py
+start_production.py
+create_employee_db.py

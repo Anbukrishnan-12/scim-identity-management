@@ -2,13 +2,13 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY pyproject.toml .
-RUN pip install fastapi uvicorn pydantic sqlalchemy python-dotenv httpx email-validator pydantic-settings
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
 COPY . .
 
-RUN python init_db.py
+RUN python manage.py migrate
 
-EXPOSE 8080
+EXPOSE $PORT
 
-CMD ["python", "-m", "app.main"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:$PORT"]

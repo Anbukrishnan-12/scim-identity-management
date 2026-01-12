@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SCIM API Documentation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .endpoint { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .method { color: white; padding: 5px 10px; border-radius: 3px; font-weight: bold; }
+        .get { background: #28a745; }
+        .post { background: #007bff; }
+        .patch { background: #ffc107; color: black; }
+        .delete { background: #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>🚀 SCIM Identity Management API</h1>
+    <p>SCIM 2.0 compliant Identity Management System</p>
+    
+    <h2>📡 API Endpoints</h2>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <strong>/scim/v2/Users/</strong>
+        <p>List all users</p>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method post">POST</span>
+        <strong>/scim/v2/Users/</strong>
+        <p>Create new user</p>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <strong>/scim/v2/Users/{id}/</strong>
+        <p>Get specific user</p>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method patch">PATCH</span>
+        <strong>/scim/v2/Users/{id}/</strong>
+        <p>Update user</p>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method delete">DELETE</span>
+        <strong>/scim/v2/Users/{id}/</strong>
+        <p>Delete user</p>
+    </div>
+    
+    <h2>🔧 Testing</h2>
+    <p>Use Postman or curl to test the API endpoints.</p>
+    
+    <h2>📋 SCIM Compliance</h2>
+    <ul>
+        <li>SCIM 2.0 Core Schema</li>
+        <li>Enterprise User Extension</li>
+        <li>Slack Profile Extension</li>
+    </ul>
+</body>
+</html>
