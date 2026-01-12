@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCIM Identity Management System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            padding: 40px 0;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+        
+        .stat-card h3 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .stat-card p {
+            color: #666;
+            font-size: 1rem;
+        }
+        
+        .api-section {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 40px;
+        }
+        
+        .api-section h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+            font-size: 2.5rem;
+        }
+        
+        .endpoints-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .endpoint-card {
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .endpoint-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+        
+        .method {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+        }
+        
+        .get { background: #28a745; }
+        .post { background: #007bff; }
+        .patch { background: #ffc107; color: #333; }
+        .delete { background: #dc3545; }
+        
+        .endpoint-url {
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
+        
+        .test-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .test-btn:hover {
+            background: #5a6fd8;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .feature-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+        
+        .feature-card i {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #fff;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #28a745;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-shield-alt"></i> SCIM Identity Management</h1>
+            <p><span class="status-indicator"></span>Enterprise-Grade Identity & Access Management System</p>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <i class="fas fa-users"></i>
+                <h3 id="userCount">Loading...</h3>
+                <p>Total Users</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-api"></i>
+                <h3>5</h3>
+                <p>API Endpoints</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-check-circle"></i>
+                <h3>SCIM 2.0</h3>
+                <p>Compliant</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-clock"></i>
+                <h3>24/7</h3>
+                <p>Uptime</p>
+            </div>
+        </div>
+        
+        <div class="api-section">
+            <h2><i class="fas fa-code"></i> API Endpoints</h2>
+            <div class="endpoints-grid">
+                <div class="endpoint-card">
+                    <span class="method get">GET</span>
+                    <h4>List All Users</h4>
+                    <div class="endpoint-url">/scim/v2/Users/</div>
+                    <p>Retrieve all users with SCIM 2.0 format</p>
+                    <button class="test-btn" onclick="testEndpoint('/scim/v2/Users/')">
+                        <i class="fas fa-play"></i> Test API
+                    </button>
+                </div>
+                
+                <div class="endpoint-card">
+                    <span class="method post">POST</span>
+                    <h4>Create User</h4>
+                    <div class="endpoint-url">/scim/v2/Users/</div>
+                    <p>Create new user with SCIM attributes</p>
+                    <button class="test-btn" onclick="showCreateForm()">
+                        <i class="fas fa-plus"></i> Create User
+                    </button>
+                </div>
+                
+                <div class="endpoint-card">
+                    <span class="method get">GET</span>
+                    <h4>Get User Details</h4>
+                    <div class="endpoint-url">/scim/v2/Users/{id}/</div>
+                    <p>Retrieve specific user information</p>
+                    <button class="test-btn" onclick="getUserDetails()">
+                        <i class="fas fa-search"></i> Get User
+                    </button>
+                </div>
+                
+                <div class="endpoint-card">
+                    <span class="method patch">PATCH</span>
+                    <h4>Update User</h4>
+                    <div class="endpoint-url">/scim/v2/Users/{id}/</div>
+                    <p>Partially update user attributes</p>
+                    <button class="test-btn" onclick="updateUser()">
+                        <i class="fas fa-edit"></i> Update
+                    </button>
+                </div>
+                
+                <div class="endpoint-card">
+                    <span class="method delete">DELETE</span>
+                    <h4>Delete User</h4>
+                    <div class="endpoint-url">/scim/v2/Users/{id}/</div>
+                    <p>Remove user from the system</p>
+                    <button class="test-btn" onclick="deleteUser()">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="features">
+            <div class="feature-card">
+                <i class="fas fa-lock"></i>
+                <h3>Secure</h3>
+                <p>Enterprise-grade security with token authentication</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-sync"></i>
+                <h3>Real-time</h3>
+                <p>Instant synchronization across all systems</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-expand-arrows-alt"></i>
+                <h3>Scalable</h3>
+                <p>Handle thousands of users efficiently</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-cogs"></i>
+                <h3>Standards</h3>
+                <p>Full SCIM 2.0 compliance with extensions</p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2024 SCIM Identity Management System | Built with Django & Modern Web Standards</p>
+        </div>
+    </div>
+    
+    <script>
+        // Load user count
+        async function loadUserCount() {
+            try {
+                const response = await fetch('/scim/v2/Users/');
+                const data = await response.json();
+                document.getElementById('userCount').textContent = data.totalResults || 0;
+            } catch (error) {
+                document.getElementById('userCount').textContent = '0';
+            }
+        }
+        
+        function testEndpoint(endpoint) {
+            window.open(endpoint, '_blank');
+        }
+        
+        function showCreateForm() {
+            alert('Create User Form\n\nUse POST /scim/v2/Users/ with JSON body:\n\n{\n  "user_name": "john.doe@example.com",\n  "display_name": "John Doe",\n  "given_name": "John",\n  "family_name": "Doe",\n  "active": true,\n  "emails": [{\n    "value": "john.doe@example.com",\n    "type": "work",\n    "primary": true\n  }]\n}');
+        }
+        
+        function getUserDetails() {
+            const userId = prompt('Enter User ID:');
+            if (userId) {
+                window.open(`/scim/v2/Users/${userId}/`, '_blank');
+            }
+        }
+        
+        function updateUser() {
+            alert('Update User\n\nUse PATCH /scim/v2/Users/{id}/ with JSON body:\n\n{\n  "title": "Senior Developer",\n  "department": "Engineering"\n}');
+        }
+        
+        function deleteUser() {
+            const userId = prompt('Enter User ID to delete:');
+            if (userId && confirm('Are you sure you want to delete this user?')) {
+                fetch(`/scim/v2/Users/${userId}/`, { method: 'DELETE' })
+                    .then(() => {
+                        alert('User deleted successfully!');
+                        loadUserCount();
+                    })
+                    .catch(err => alert('Error deleting user'));
+            }
+        }
+        
+        // Load data on page load
+        loadUserCount();
+        
+        // Auto-refresh user count every 30 seconds
+        setInterval(loadUserCount, 30000);
+    </script>
+</body>
+</html>

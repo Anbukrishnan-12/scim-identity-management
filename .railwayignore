@@ -1,11 +1,8 @@
-init_db.py
-init_production_db.py
+nixpacks.toml
+Dockerfile
 start_production.py
+init_production_db.py
 create_employee_db.py
 debug_api.py
-test_api.py
-test_existing_data.py
-update_db.py
-check_production.py
+test_*.py
 *.db
-.env
