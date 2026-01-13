@@ -352,10 +352,12 @@
         // Load user count
         async function loadUserCount() {
             try {
+                // Try direct Django API first
                 const response = await fetch('/scim/v2/Users/');
                 const data = await response.json();
-                document.getElementById('userCount').textContent = data.totalResults || 0;
+                document.getElementById('userCount').textContent = data.totalResults || data.Resources?.length || 0;
             } catch (error) {
+                console.log('Error loading user count:', error);
                 document.getElementById('userCount').textContent = '0';
             }
         }

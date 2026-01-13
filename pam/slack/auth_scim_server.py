@@ -75,10 +75,14 @@ class SCIMClient:
         except Exception as e:
             return {"error": str(e)}
     
-    def get_users(self): return self._make_request("GET", "/scim/v2/Users/")
+    def get_users(self): 
+        response = self._make_request("GET", "/scim/v2/Users/")
+        print(f"Django response: {response}")  # Debug log
+        return response
     def get_user(self, user_id): return self._make_request("GET", f"/scim/v2/Users/{user_id}/")
     def create_user(self, data): return self._make_request("POST", "/scim/v2/Users/", data)
     def update_user(self, user_id, data): return self._make_request("PATCH", f"/scim/v2/Users/{user_id}/", data)
+    def put_user(self, user_id, data): return self._make_request("PUT", f"/scim/v2/Users/{user_id}/", data)
     def delete_user(self, user_id): return self._make_request("DELETE", f"/scim/v2/Users/{user_id}/")
 
 scim_client = SCIMClient()
@@ -163,6 +167,11 @@ def create_user():
 @require_auth
 def update_user(user_id):
     return jsonify(scim_client.update_user(user_id, request.get_json()))
+
+@app.route('/users/<user_id>', methods=['PUT'])
+@require_auth
+def put_user(user_id):
+    return jsonify(scim_client.put_user(user_id, request.get_json()))
 
 @app.route('/users/<user_id>', methods=['DELETE'])
 @require_auth
