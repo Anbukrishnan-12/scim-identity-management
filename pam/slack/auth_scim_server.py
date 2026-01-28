@@ -1,48 +1,26 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, redirect, render_template_string
 from flask_cors import CORS
 from functools import wraps
 import secrets
 import datetime
 from typing import Dict, Optional
 import requests
+from auth_manager import token_manager
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"], "allow_headers": ["Content-Type", "Authorization"]}})  # Enable CORS for all routes
 
-# Simple token storage
-tokens = {}
-revoked_tokens = set()
-
+# Use token_manager from auth_manager.py
 def generate_token(user_id: str) -> Dict:
-    """Generate token"""
-    token = secrets.token_urlsafe(32)
-    expires_at = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-    
-    tokens[token] = {
-        'user_id': user_id,
-        'expires_at': expires_at,
-        'active': True
-    }
-    
-    return {
-        'access_token': token,
-        'token_type': 'Bearer',
-        'expires_in': 3600
-    }
+    """Generate user token"""
+    return token_manager.generate_token(user_id)
 
 def validate_token(token: str) -> Optional[Dict]:
-    """Validate token"""
-    if not token or token in revoked_tokens:
-        return None
-    
-    token_data = tokens.get(token)
-    if not token_data or datetime.datetime.utcnow() > token_data['expires_at']:
-        return None
-    
-    return token_data
+    """Validate token - supports both user and service tokens"""
+    return token_manager.validate_token(token)
 
 def require_auth(f):
-    """Authentication decorator"""
+    """Authentication decorator - supports user and service tokens"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth_header = request.headers.get('Authorization')
@@ -54,7 +32,14 @@ def require_auth(f):
         if not token_data:
             return jsonify({'error': 'Invalid or expired token'}), 401
         
-        request.current_user = token_data['user_id']
+        # Set user info based on token type
+        if token_data['type'] == 'user':
+            request.current_user = token_data['user_id']
+            request.auth_type = 'user'
+        else:  # service token
+            request.current_user = token_data['name']
+            request.auth_type = 'service'
+        
         return f(*args, **kwargs)
     return decorated_function
 
@@ -130,7 +115,11 @@ def validate():
         if not token_data:
             return jsonify({'error': 'Invalid token'}), 401
         
-        return jsonify({'valid': True, 'user_id': token_data['user_id']})
+        return jsonify({
+            'valid': True,
+            'type': token_data['type'],
+            'user_id': token_data.get('user_id') or token_data.get('name')
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -139,11 +128,199 @@ def revoke():
     try:
         auth_header = request.headers.get('Authorization')
         token = auth_header[7:]
-        if token in tokens:
-            tokens[token]['active'] = False
-            revoked_tokens.add(token)
+        if token_manager.revoke_token(token):
             return jsonify({'message': 'Token revoked'})
         return jsonify({'error': 'Token not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# OAuth 2.0 endpoints
+@app.route('/oauth/v2/authorize', methods=['GET'])
+def oauth_authorize():
+    """OAuth authorization endpoint - Step 1"""
+    try:
+        client_id = request.args.get('client_id')
+        redirect_uri = request.args.get('redirect_uri')
+        scope = request.args.get('scope', 'users:read')
+        state = request.args.get('state', '')
+        
+        if not client_id:
+            return jsonify({'error': 'client_id required'}), 400
+        
+        if not token_manager.validate_client(client_id, redirect_uri):
+            return jsonify({'error': 'Invalid client_id or redirect_uri'}), 400
+        
+        scopes = scope.split(',')
+        
+        # Get client info
+        client_info = token_manager.oauth_clients.get(client_id, {})
+        app_name = client_info.get('name', client_id)
+        
+        # Build scope items HTML
+        scope_items = ''.join([f'<div class="scope-item">✓ {s}</div>' for s in scopes])
+        
+        # Simple approval page
+        html = f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>OAuth Authorization</title>
+            <style>
+                body {{ font-family: Arial; max-width: 500px; margin: 50px auto; padding: 20px; }}
+                .app-info {{ background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; }}
+                .scopes {{ background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+                .scope-item {{ padding: 8px; margin: 5px 0; background: #e3f2fd; border-radius: 3px; }}
+                button {{ padding: 12px 30px; margin: 10px 5px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }}
+                .approve {{ background: #4CAF50; color: white; }}
+                .deny {{ background: #f44336; color: white; }}
+            </style>
+        </head>
+        <body>
+            <h2>🔐 Authorization Request</h2>
+            <div class="app-info">
+                <strong>Application:</strong> {app_name}<br>
+                <strong>Client ID:</strong> {client_id}
+            </div>
+            
+            <p>This application is requesting access to:</p>
+            <div class="scopes">
+                {scope_items}
+            </div>
+            
+            <form method="POST" action="/oauth/v2/authorize">
+                <input type="hidden" name="client_id" value="{client_id}">
+                <input type="hidden" name="redirect_uri" value="{redirect_uri or ''}">
+                <input type="hidden" name="scope" value="{scope}">
+                <input type="hidden" name="state" value="{state}">
+                <button type="submit" name="action" value="approve" class="approve">✓ Approve</button>
+                <button type="submit" name="action" value="deny" class="deny">✗ Deny</button>
+            </form>
+        </body>
+        </html>
+        '''
+        return html
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/oauth/v2/authorize', methods=['POST'])
+def oauth_authorize_post():
+    """OAuth authorization approval - Step 2"""
+    try:
+        action = request.form.get('action')
+        client_id = request.form.get('client_id')
+        redirect_uri = request.form.get('redirect_uri')
+        scope = request.form.get('scope', 'users:read')
+        state = request.form.get('state', '')
+        
+        if action != 'approve':
+            error_url = f"{redirect_uri}?error=access_denied&state={state}"
+            return redirect(error_url)
+        
+        scopes = scope.split(',')
+        code = token_manager.generate_auth_code(client_id, scopes)
+        
+        callback_url = f"{redirect_uri}?code={code}&state={state}"
+        return redirect(callback_url)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/oauth/v2/access', methods=['POST'])
+def oauth_access():
+    """OAuth token exchange - Step 3"""
+    try:
+        data = request.get_json() or request.form.to_dict()
+        code = data.get('code')
+        client_id = data.get('client_id')
+        client_secret = data.get('client_secret')
+        
+        if not all([code, client_id, client_secret]):
+            return jsonify({'error': 'Missing required parameters'}), 400
+        
+        token_data = token_manager.exchange_code_for_token(code, client_id, client_secret)
+        
+        if not token_data:
+            return jsonify({'error': 'Invalid authorization code or client credentials'}), 401
+        
+        return jsonify(token_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/oauth/callback', methods=['GET'])
+def oauth_callback():
+    """OAuth callback endpoint - displays the code"""
+    code = request.args.get('code')
+    state = request.args.get('state', '')
+    error = request.args.get('error')
+    
+    if error:
+        return f'''
+        <html>
+        <body style="font-family: Arial; max-width: 500px; margin: 50px auto; padding: 20px;">
+            <h2 style="color: #f44336;">❌ Authorization Denied</h2>
+            <p>The authorization request was denied.</p>
+        </body>
+        </html>
+        '''
+    
+    return f'''
+    <html>
+    <head>
+        <title>OAuth Success</title>
+        <style>
+            body {{ font-family: Arial; max-width: 600px; margin: 50px auto; padding: 20px; }}
+            .code-box {{ background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; word-break: break-all; }}
+            .success {{ color: #4CAF50; }}
+        </style>
+    </head>
+    <body>
+        <h2 class="success">✓ Authorization Successful</h2>
+        <p>Your authorization code:</p>
+        <div class="code-box"><strong>{code}</strong></div>
+        <p>Use this code to exchange for an access token at:</p>
+        <code>POST http://127.0.0.1:9000/oauth/v2/access</code>
+        <p style="margin-top: 20px; color: #666;">State: {state}</p>
+    </body>
+    </html>
+    '''
+
+# Service token management endpoints
+@app.route('/auth/service-tokens', methods=['GET'])
+@require_auth
+def list_service_tokens():
+    """List all service tokens (admin only)"""
+    try:
+        tokens_data = token_manager.list_service_tokens()
+        # Convert datetime objects to strings
+        result = {}
+        for token, data in tokens_data.items():
+            result[token] = {
+                'name': data['name'],
+                'description': data['description'],
+                'permissions': data['permissions'],
+                'created_at': data['created_at'].isoformat() if hasattr(data['created_at'], 'isoformat') else str(data['created_at'])
+            }
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/auth/service-tokens', methods=['POST'])
+@require_auth
+def create_service_token():
+    """Create new service token (admin only)"""
+    try:
+        data = request.get_json()
+        name = data.get('name')
+        description = data.get('description', '')
+        permissions = data.get('permissions', ['users:read', 'users:write'])
+        
+        token = token_manager.add_service_token(name, description, permissions)
+        return jsonify({
+            'token': token,
+            'name': name,
+            'description': description,
+            'permissions': permissions,
+            'message': 'Service token created successfully'
+        }), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -179,8 +356,28 @@ def delete_user(user_id):
     return jsonify(scim_client.delete_user(user_id))
 
 if __name__ == '__main__':
-    print("Starting Authenticated SCIM Client on port 9000...")
-    print("Users: admin/password123, user1/pass123")
-    print("1. Login: POST /auth/login")
-    print("2. Use token: Authorization: Bearer <token>")
-    app.run(host='127.0.0.1', port=9000, debug=True)
+    print("\n" + "="*60)
+    print("🚀 Authenticated SCIM Client with OAuth 2.0 Support")
+    print("="*60)
+    print("\n📍 Server: http://0.0.0.0:9000")
+    print("\n👤 User Login:")
+    print("   - admin/password123")
+    print("   - user1/pass123")
+    print("\n🔑 Service Tokens (Pre-configured):")
+    for token, data in token_manager.service_tokens.items():
+        print(f"   - {data['name']}: {token}")
+    print("\n🔐 OAuth 2.0 Clients:")
+    for client_id, client_data in token_manager.oauth_clients.items():
+        print(f"   - {client_data['name']}: {client_id}")
+        print(f"     Secret: {client_data['client_secret']}")
+    print("\n📚 Endpoints:")
+    print("   Auth: /auth/login, /auth/validate, /auth/revoke")
+    print("   OAuth: /oauth/v2/authorize, /oauth/v2/access")
+    print("   Service: /auth/service-tokens (GET/POST)")
+    print("   SCIM: /users (GET/POST/PATCH/DELETE)")
+    print("\n🎯 OAuth Flow:")
+    print("   1. GET /oauth/v2/authorize?client_id=scim_client_001&redirect_uri=http://127.0.0.1:9000/oauth/callback&scope=users:read,users:write")
+    print("   2. User approves → receives code")
+    print("   3. POST /oauth/v2/access with code + client credentials")
+    print("\n" + "="*60 + "\n")
+    app.run(host='0.0.0.0', port=9000, debug=True)
